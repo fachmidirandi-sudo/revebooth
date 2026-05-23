@@ -465,4 +465,379 @@
 <button class="w-full bg-secondary-fixed text-on-secondary-fixed py-3 px-6 flex items-center justify-center gap-3 transition-colors hover:bg-secondary text-xs font-technical-mono uppercase" id="download-btn"><span class="material-symbols-outlined">download</span>Unduh</button>
 </div>
 </div>
-<div class="bg-surface p-4 border border-outline-variant italic text-[11px] opacity-60 leading-relaxed">This archive project explores
+<div class="bg-surface p-4 border border-outline-variant italic text-[11px] opacity-60 leading-relaxed">This archive project explores the intersection of memory and digital permanence. All captures are rendered locally and remain within your ephemeral session. ReveBooth © 2026.</div>
+</div>
+</div>
+</main>
+
+<canvas class="hidden" id="canvas" width="736" height="1104"></canvas>
+
+<!-- Mobile Navigation -->
+<footer class="fixed bottom-0 left-0 w-full flex justify-around items-center py-3 px-4 md:hidden bg-surface-container border-t border-outline-variant z-50">
+<div class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-full px-6 py-1"><span class="material-symbols-outlined">photo_camera</span><span class="font-technical-mono text-[10px]">Studio</span></div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-1"><span class="material-symbols-outlined">auto_awesome_motion</span><span class="font-technical-mono text-[10px]">Gallery</span></div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-1"><span class="material-symbols-outlined">settings</span><span class="font-technical-mono text-[10px]">Settings</span></div>
+</footer>
+
+<script>
+// roundRect function
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        if (w < 2 * r) r = w / 2;
+        if (h < 2 * r) r = h / 2;
+        this.moveTo(x + r, y);
+        this.lineTo(x + w - r, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + r);
+        this.lineTo(x + w, y + h - r);
+        this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        this.lineTo(x + r, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - r);
+        this.lineTo(x, y + r);
+        this.quadraticCurveTo(x, y, x + r, y);
+        this.closePath();
+        return this;
+    };
+}
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const captureBtn = document.getElementById('capture-btn');
+const resetBtn = document.getElementById('reset-btn');
+const downloadBtn = document.getElementById('download-btn');
+const flash = document.getElementById('flash');
+const postActions = document.getElementById('post-capture-actions');
+const stageContainer = document.getElementById('capture-area');
+const countdownOverlay = document.getElementById('countdown-overlay');
+const countdownText = document.getElementById('countdown-text');
+const captureStatus = document.getElementById('capture-status');
+const statusText = document.getElementById('status-text');
+
+const overlays = {
+    boarding: document.getElementById('overlay-boarding'),
+    kalibata: document.getElementById('overlay-kalibata'),
+    lany: document.getElementById('overlay-lany')
+};
+
+const buttons = {
+    boarding: document.getElementById('btn-boarding'),
+    kalibata: document.getElementById('btn-kalibata'),
+    lany: document.getElementById('btn-lany')
+};
+
+let currentTheme = 'boarding';
+let stream = null;
+let capturedShots = [];
+
+async function initCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, aspectRatio: 1 }, 
+            audio: false 
+        });
+        video.srcObject = stream;
+    } catch (err) {
+        console.error("Error accessing webcam:", err);
+        alert("Please grant camera access to use ReveBooth.");
+    }
+}
+
+function setDate() {
+    const now = new Date();
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    const dateStr = `${months[now.getMonth()]} ${now.getDate().toString().padStart(2, '0')} ${now.getFullYear()}`;
+    const stubDate = document.getElementById('date-stub');
+    if(stubDate) stubDate.textContent = dateStr;
+}
+
+function setTheme(theme) {
+    currentTheme = theme;
+    Object.keys(overlays).forEach(k => {
+        overlays[k].classList.toggle('hidden', k !== theme);
+    });
+    
+    stageContainer.classList.remove('kalibata-active', 'boarding-active');
+    video.classList.remove('opacity-40', 'hidden');
+
+    if (theme === 'kalibata') {
+        stageContainer.classList.add('kalibata-active');
+    } else if (theme === 'boarding') {
+        stageContainer.classList.add('boarding-active');
+    }
+
+    Object.keys(buttons).forEach(k => {
+        if(k === theme) {
+            buttons[k].classList.add('ring-2', 'ring-primary', 'scale-[1.02]');
+        } else {
+            buttons[k].classList.remove('ring-2', 'ring-primary', 'scale-[1.02]');
+        }
+    });
+    
+    capturedShots = [];
+    resetUI();
+}
+
+function resetUI() {
+    video.play();
+    video.classList.remove('hidden');
+    captureBtn.classList.remove('hidden');
+    postActions.classList.add('hidden');
+    captureStatus.classList.add('hidden');
+    
+    if (currentTheme === 'kalibata') {
+        for(let i=0; i<3; i++) {
+            const img = document.querySelector(`#slot-${i} img`);
+            if(img) { img.classList.add('hidden'); img.src = ''; }
+        }
+    } else if (currentTheme === 'boarding') {
+        for(let i=0; i<4; i++) {
+            const img = document.querySelector(`#board-slot-${i} img`);
+            if(img) { img.classList.add('hidden'); img.src = ''; }
+        }
+    }
+}
+
+async function triggerFlash() {
+    flash.classList.remove('opacity-0');
+    flash.classList.add('opacity-100');
+    await new Promise(r => setTimeout(r, 100));
+    flash.classList.remove('opacity-100');
+    flash.classList.add('opacity-0');
+}
+
+async function startCountdown(seconds) {
+    countdownOverlay.classList.remove('hidden');
+    for (let i = seconds; i > 0; i--) {
+        countdownText.textContent = i;
+        await new Promise(r => setTimeout(r, 800));
+    }
+    countdownOverlay.classList.add('hidden');
+}
+
+async function captureFrame() {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 600;
+    tempCanvas.height = 600;
+    const ctx = tempCanvas.getContext('2d');
+    
+    ctx.save();
+    ctx.filter = 'none';
+    // Tidak ada mirror/flip, ambil gambar langsung dari video
+    ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+    ctx.restore();
+    
+    return tempCanvas.toDataURL('image/jpeg', 0.8);
+}
+
+captureBtn.addEventListener('click', async () => {
+    captureBtn.classList.add('hidden');
+    capturedShots = [];
+    
+    const count = currentTheme === 'kalibata' ? 3 : (currentTheme === 'boarding' ? 4 : 1);
+    
+    if (count > 1) {
+        captureStatus.classList.remove('hidden');
+        for (let i = 0; i < count; i++) {
+            statusText.textContent = `Get Ready for Shot ${i+1}/${count}...`;
+            await startCountdown(3);
+            statusText.textContent = `Capturing Shot ${i+1}/${count}...`;
+            await triggerFlash();
+            const shotData = await captureFrame();
+            capturedShots.push(shotData);
+            
+            const selector = currentTheme === 'kalibata' ? `#slot-${i}` : `#board-slot-${i}`;
+            const slotImg = document.querySelector(`${selector} img`);
+            if(slotImg) {
+                slotImg.src = shotData;
+                slotImg.classList.remove('hidden');
+            }
+        }
+        video.classList.add('hidden');
+        captureStatus.classList.add('hidden');
+    } else {
+        await startCountdown(3);
+        await triggerFlash();
+        const shotData = await captureFrame();
+        capturedShots.push(shotData);
+        video.pause();
+    }
+    
+    postActions.classList.remove('hidden');
+    renderToFinalCanvas();
+});
+
+resetBtn.addEventListener('click', () => {
+    resetUI();
+});
+
+function renderToFinalCanvas() {
+    const ctx = canvas.getContext('2d');
+    const navy = '#1a237e';
+
+    if (currentTheme === 'boarding') {
+        canvas.width = 736;
+        canvas.height = 1104;
+        const w = canvas.width;
+        const h = canvas.height;
+
+        ctx.fillStyle = '#fcf9f8';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.fillStyle = navy;
+        ctx.fillRect(0, 0, w, 50);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 14px "Space Mono"';
+        ctx.textAlign = 'left';
+        ctx.fillText('PHOTO AIR ✈', 160, 32);
+        ctx.textAlign = 'right';
+        ctx.fillText('IDN - USA', w - 160, 32);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(30, 70, w - 60, 180);
+        ctx.strokeStyle = navy;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(30, 70, w - 60, 180);
+
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(w - 230, 70);
+        ctx.lineTo(w - 230, 250);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = navy;
+        ctx.textAlign = 'left';
+        ctx.font = '800 52px "Montserrat"';
+        ctx.fillText('IDN✈USA', 60, 150);
+
+        ctx.fillStyle = navy;
+        for(let i=0; i<30; i++) {
+            const bw = Math.random() * 4 + 1;
+            ctx.fillRect(60 + (i*4.5), 180, bw, 40);
+        }
+
+        ctx.font = '700 12px "Space Mono"';
+        ctx.fillText('FLIGHT', 200, 195);
+        ctx.fillText('GATE', 280, 195);
+        ctx.fillText('SEAT', 320, 195);
+        ctx.fillText('DEPARTUR', 360, 195);
+        ctx.font = '400 12px "Space Mono"';
+        ctx.fillText('JG 5879092', 200, 215);
+        ctx.fillText('7', 280, 215);
+        ctx.fillText('26C', 320, 215);
+        
+        const dateStub = document.getElementById('date-stub');
+        if(dateStub) ctx.fillText(dateStub.textContent, 360, 215);
+
+        ctx.font = '700 12px "Space Mono"';
+        ctx.fillText('FLIGHT', w - 200, 105);
+        ctx.fillText('DEPARTUR', w - 200, 145);
+        ctx.font = '400 12px "Space Mono"';
+        ctx.fillText('JG 5879092', w - 200, 120);
+        if(dateStub) ctx.fillText(dateStub.textContent, w - 200, 160);
+        ctx.font = '700 10px "Space Mono"';
+        ctx.fillText('REVEBOOTH', w - 200, 210);
+        ctx.fillText('PHOTOBOOTH', w - 200, 222);
+
+        const gridY = 270;
+        const gridPadding = 20;
+        const slotW = (w - (gridPadding * 3)) / 2;
+        const slotH = slotW;
+
+        capturedShots.forEach((data, i) => {
+            const img = new Image();
+            img.onload = () => {
+                const col = i % 2;
+                const row = Math.floor(i / 2);
+                const x = gridPadding + (col * (slotW + gridPadding));
+                const y = gridY + (row * (slotH + gridPadding));
+                ctx.drawImage(img, x, y, slotW, slotH);
+            };
+            img.src = data;
+        });
+
+        ctx.fillStyle = navy;
+        ctx.fillRect(0, h - 50, w, 50);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 14px "Space Mono"';
+        ctx.textAlign = 'center';
+        ctx.fillText('REVEBOOTH PHOTOBOOTH', w/2, h - 18);
+
+    } else if (currentTheme === 'kalibata') {
+        canvas.width = 400;
+        canvas.height = 900;
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.fillStyle = '#e9e7d9';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.textAlign = 'center';
+        ctx.font = '700 24px "Dancing Script"';
+        ctx.fillText('Photomatic', w/2, 60);
+        ctx.font = '400 12px "Space Mono"';
+        ctx.fillText('- Kalibata, 2012 -', w/2, 85);
+        
+        const imgWidth = 320;
+        const imgHeight = 200;
+        const startY = 120;
+        const spacing = 220;
+        const radius = 30;
+
+        capturedShots.forEach((data, index) => {
+            const img = new Image();
+            img.onload = () => {
+                const x = (w - imgWidth) / 2;
+                const y = startY + (index * spacing);
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(x, y, imgWidth, imgHeight, radius);
+                ctx.clip();
+                ctx.drawImage(img, x, y, imgWidth, imgHeight);
+                ctx.restore();
+            };
+            img.src = data;
+        });
+        
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.font = 'italic 14px "Noto Serif"';
+        ctx.fillText('"Bolehkah kugunakan nama depanmu kelak?"', w/2, h - 70);
+        ctx.fillText('"Pasti kan kusematkan hingga menular."', w/2, h - 45);
+
+    } else {
+        canvas.width = 600;
+        canvas.height = 800;
+        const w = canvas.width;
+        const h = canvas.height;
+        const img = new Image();
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, w, h);
+            if (currentTheme === 'lany') {
+                const lanyBlue = '#3d4a8e';
+                ctx.strokeStyle = lanyBlue;
+                ctx.lineWidth = 20;
+                ctx.strokeRect(0, 0, w, h);
+                ctx.fillStyle = lanyBlue;
+                ctx.textAlign = 'center';
+                ctx.font = '800 16px "Montserrat"';
+                ctx.fillText('REVEBOOTH', w/2, h-35);
+            }
+        };
+        if(capturedShots[0]) img.src = capturedShots[0];
+    }
+}
+
+downloadBtn.addEventListener('click', () => {
+    const dataURL = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `revebooth-${currentTheme}-${Date.now()}.png`;
+    link.href = dataURL;
+    link.click();
+});
+
+window.addEventListener('load', () => {
+    initCamera();
+    setDate();
+    setTheme('boarding');
+});
+</script>
+</body>
+</html>
