@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Noto+Serif:ital,wght@0,400;0,700;1,600&amp;family=Space+Mono:wght@400;700&amp;family=Montserrat:wght@800&amp;family=Dancing+Script:wght@700&amp;display=swap" rel="stylesheet">
 <style>
-        /* Tailwind Config */
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
@@ -17,6 +16,7 @@
             aspect-ratio: 3 / 4;
             max-width: 450px;
             width: 100%;
+            position: relative;
         }
 
         .stage-container.kalibata-active {
@@ -29,26 +29,27 @@
             max-width: 500px;
         }
 
-        .vintage-filter {
-            filter: none;
+        /* Video background - selalu terlihat */
+        .video-layer {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+            z-index: 1;
+        }
+
+        /* Frame overlay - di atas video */
+        .frame-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            pointer-events: none;
         }
 
         .film-grain {
             display: none;
-            
-        }
-
-        @keyframes grain {
-            0%, 100% { transform:translate(0, 0) }
-            10% { transform:translate(-5%, -10%) }
-            20% { transform:translate(-15%, 5%) }
-            30% { transform:translate(7%, -25%) }
-            40% { transform:translate(-5%, 25%) }
-            50% { transform:translate(-15%, 10%) }
-            60% { transform:translate(15%, 0%) }
-            70% { transform:translate(0%, 15%) }
-            80% { transform:translate(3%, 35%) }
-            90% { transform:translate(-10%, 10%) }
         }
 
         .kalibata-frame-edge {
@@ -361,85 +362,93 @@
 <div class="relative w-full flex flex-col md:flex-row gap-12 items-center justify-center">
 <!-- Live Viewport Container -->
 <div class="stage-container relative bg-surface-dim overflow-hidden border border-outline-variant shadow-xl transition-all duration-500" id="capture-area">
-<video autoplay class="absolute inset-0 w-full h-full object-cover transform -scale-x-100 vintage-filter opacity-100" id="video" playsinline></video>
-<div class="film-grain"></div>
+    <!-- VIDEO LAYER - SELALU TERLIHAT DI BAWAH -->
+    <video autoplay class="video-layer" id="video" playsinline></video>
+    
+    <!-- BOARDING PASS OVERLAY -->
+    <div class="frame-overlay hidden" id="overlay-boarding">
+        <div class="w-full h-full bg-white flex flex-col">
+            <div class="bg-reve-navy text-white px-6 py-2 flex justify-between items-center font-technical-mono text-[10px] uppercase tracking-widest">
+                <div class="flex items-center gap-2"><span>PHOTO AIR</span><span class="material-symbols-outlined text-[12px]">flight</span></div>
+                <div>IDN - USA</div>
+            </div>
+            <div class="border-b-2 border-reve-navy flex">
+                <div class="flex-grow p-4 border-r border-dashed border-reve-navy/40">
+                    <h2 class="text-reve-navy text-4xl font-display-bold-sans tracking-tighter flex items-center">IDN <span class="material-symbols-outlined mx-1 text-2xl">flight</span> USA</h2>
+                    <div class="mt-4 grid grid-cols-4 gap-2 text-reve-navy">
+                        <div class="barcode-strip h-8 w-16 mb-1"></div>
+                        <div><p class="text-[7px] font-bold uppercase opacity-60">Flight</p><p class="text-[9px] font-bold">JG 5879092</p></div>
+                        <div><p class="text-[7px] font-bold uppercase opacity-60">Gate</p><p class="text-[9px] font-bold">7</p></div>
+                        <div><p class="text-[7px] font-bold uppercase opacity-60">Seat</p><p class="text-[9px] font-bold">26C</p></div>
+                    </div>
+                </div>
+                <div class="w-32 p-4 text-reve-navy font-technical-mono relative">
+                    <div class="space-y-3">
+                        <div><p class="text-[7px] font-bold opacity-60">FLIGHT</p><p class="text-[9px]">JG 5879092</p></div>
+                        <div><p class="text-[7px] font-bold opacity-60">DEPARTUR</p><p class="text-[9px]" id="date-stub">MAY 23 2026</p></div>
+                        <div class="pt-2"><p class="text-[7px] font-bold leading-tight">REVEBOOTH<br>PHOTOBOOTH</p></div>
+                    </div>
+                    <div class="absolute right-4 top-4 bottom-4 w-6 barcode-strip rotate-180 opacity-60"></div>
+                </div>
+            </div>
+            <div class="boarding-photo-grid flex-grow">
+                <div class="boarding-photo-slot" id="board-slot-0"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+                <div class="boarding-photo-slot" id="board-slot-1"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+                <div class="boarding-photo-slot" id="board-slot-2"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+                <div class="boarding-photo-slot" id="board-slot-3"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+            </div>
+            <div class="bg-reve-navy text-white text-center py-2 font-technical-mono text-[10px] tracking-widest uppercase">ReveBooth Photobooth</div>
+        </div>
+    </div>
 
-<!-- Boarding Pass Overlay -->
-<div class="absolute inset-0 pointer-events-none flex flex-col z-10 bg-white hidden" id="overlay-boarding">
-<div class="bg-reve-navy text-white px-6 py-2 flex justify-between items-center font-technical-mono text-[10px] uppercase tracking-widest">
-<div class="flex items-center gap-2"><span>PHOTO AIR</span><span class="material-symbols-outlined text-[12px]">flight</span></div>
-<div>IDN - USA</div>
-</div>
-<div class="border-b-2 border-reve-navy flex">
-<div class="flex-grow p-4 border-r border-dashed border-reve-navy/40">
-<h2 class="text-reve-navy text-4xl font-display-bold-sans tracking-tighter flex items-center">IDN <span class="material-symbols-outlined mx-1 text-2xl">flight</span> USA</h2>
-<div class="mt-4 grid grid-cols-4 gap-2 text-reve-navy">
-<div class="barcode-strip h-8 w-16 mb-1"></div>
-<div><p class="text-[7px] font-bold uppercase opacity-60">Flight</p><p class="text-[9px] font-bold">JG 5879092</p></div>
-<div><p class="text-[7px] font-bold uppercase opacity-60">Gate</p><p class="text-[9px] font-bold">7</p></div>
-<div><p class="text-[7px] font-bold uppercase opacity-60">Seat</p><p class="text-[9px] font-bold">26C</p></div>
-</div>
-</div>
-<div class="w-32 p-4 text-reve-navy font-technical-mono relative">
-<div class="space-y-3">
-<div><p class="text-[7px] font-bold opacity-60">FLIGHT</p><p class="text-[9px]">JG 5879092</p></div>
-<div><p class="text-[7px] font-bold opacity-60">DEPARTUR</p><p class="text-[9px]" id="date-stub">MAY 23 2026</p></div>
-<div class="pt-2"><p class="text-[7px] font-bold leading-tight">REVEBOOTH<br>PHOTOBOOTH</p></div>
-</div>
-<div class="absolute right-4 top-4 bottom-4 w-6 barcode-strip rotate-180 opacity-60"></div>
-</div>
-</div>
-<div class="boarding-photo-grid flex-grow">
-<div class="boarding-photo-slot" id="board-slot-0"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
-<div class="boarding-photo-slot" id="board-slot-1"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
-<div class="boarding-photo-slot" id="board-slot-2"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
-<div class="boarding-photo-slot" id="board-slot-3"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
-</div>
-<div class="bg-reve-navy text-white text-center py-2 font-technical-mono text-[10px] tracking-widest uppercase">ReveBooth Photobooth</div>
-</div>
+    <!-- KALIBATA OVERLAY -->
+    <div class="frame-overlay hidden" id="overlay-kalibata">
+        <div class="w-full h-full bg-kalibata-cream kalibata-frame-edge shadow-inner flex flex-col p-6">
+            <div class="w-full flex flex-col items-center pt-4 pb-2"><span class="font-script text-lg text-black/80">Photomatic</span><span class="font-technical-mono text-[10px] tracking-widest mt-1">- Kalibata, 2012 -</span></div>
+            <div class="flex-grow flex flex-col justify-around py-4">
+                <div class="photo-slot" id="slot-0"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-20"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+                <div class="photo-slot" id="slot-1"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-20"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+                <div class="photo-slot" id="slot-2"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-20"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+            </div>
+            <div class="w-full text-center pb-6 px-4 space-y-1">
+                <p class="font-headline-sm italic text-[11px] leading-tight text-black/80">"Bolehkah kugunakan nama depanmu kelak?"</p>
+                <p class="font-headline-sm italic text-[11px] leading-tight text-black/80">"Pasti kan kusematkan hingga menular."</p>
+            </div>
+        </div>
+    </div>
 
-<!-- Kalibata Overlay -->
-<div class="absolute inset-0 pointer-events-none flex flex-col p-6 z-10 bg-kalibata-cream kalibata-frame-edge shadow-inner hidden" id="overlay-kalibata">
-<div class="w-full flex flex-col items-center pt-4 pb-2"><span class="font-script text-lg text-black/80">Photomatic</span><span class="font-technical-mono text-[10px] tracking-widest mt-1">- Kalibata, 2012 -</span></div>
-<div class="flex-grow flex flex-col justify-around py-4">
-<div class="photo-slot" id="slot-0"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-20"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
-<div class="photo-slot" id="slot-1"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-20"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
-<div class="photo-slot" id="slot-2"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-20"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
-</div>
-<div class="w-full text-center pb-6 px-4 space-y-1">
-<p class="font-headline-sm italic text-[11px] leading-tight text-black/80">"Bolehkah kugunakan nama depanmu kelak?"</p>
-<p class="font-headline-sm italic text-[11px] leading-tight text-black/80">"Pasti kan kusematkan hingga menular."</p>
-</div>
-</div>
+    <!-- LANY OVERLAY -->
+    <div class="frame-overlay hidden" id="overlay-lany">
+        <div class="w-full h-full relative">
+            <div class="absolute inset-0 bg-[#e8e6e3] opacity-20 z-0"></div>
+            <div class="relative z-20 flex flex-col h-full p-6">
+                <div class="flex justify-between items-start text-lany-blue">
+                    <div class="font-technical-mono text-[8px] leading-tight opacity-80">i still remember...<br>i will forever...</div>
+                    <div class="font-headline-sm text-sm italic tracking-tight text-right w-1/2">secrets we will tell</div>
+                </div>
+                <div class="mt-2">
+                    <h2 class="font-headline-md italic text-4xl text-lany-blue leading-none">Backseat</h2>
+                    <p class="font-technical-mono text-[10px] text-lany-blue ml-12 -mt-1">never</p>
+                </div>
+                <div class="flex-grow"></div>
+                <div>
+                    <div class="flex items-end justify-between">
+                        <div class="text-lany-blue">
+                            <p class="font-headline-sm italic text-xl mb-1">i miss you</p>
+                            <p class="font-technical-mono text-[7px] leading-tight opacity-70">miss americana<br>and all my friends love ya</p>
+                        </div>
+                        <div class="font-script text-8xl text-lany-blue opacity-90 leading-none -mb-4 -mr-2">XXL</div>
+                    </div>
+                    <div class="mt-8 text-center"><span class="font-display-bold-sans text-xs tracking-widest text-lany-blue">LANY</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<!-- LANY Overlay -->
-<div class="absolute inset-0 pointer-events-none flex flex-col p-6 z-10 hidden" id="overlay-lany">
-<div class="absolute inset-0 bg-[#e8e6e3] opacity-20 z-0"></div>
-<div class="relative z-20 flex justify-between items-start text-lany-blue">
-<div class="font-technical-mono text-[8px] leading-tight opacity-80">i still remember...<br>i will forever...</div>
-<div class="font-headline-sm text-sm italic tracking-tight text-right w-1/2">secrets we will tell</div>
-</div>
-<div class="relative z-20 mt-2">
-<h2 class="font-headline-md italic text-4xl text-lany-blue leading-none">Backseat</h2>
-<p class="font-technical-mono text-[10px] text-lany-blue ml-12 -mt-1">never</p>
-</div>
-<div class="flex-grow"></div>
-<div class="relative z-20">
-<div class="flex items-end justify-between">
-<div class="text-lany-blue">
-<p class="font-headline-sm italic text-xl mb-1">i miss you</p>
-<p class="font-technical-mono text-[7px] leading-tight opacity-70">miss americana<br>and all my friends love ya</p>
-</div>
-<div class="font-script text-8xl text-lany-blue opacity-90 leading-none -mb-4 -mr-2">XXL</div>
-</div>
-<div class="mt-8 text-center"><span class="font-display-bold-sans text-xs tracking-widest text-lany-blue">LANY</span></div>
-</div>
-</div>
-
-<div class="absolute inset-0 bg-white pointer-events-none z-[100] transition-opacity opacity-0" id="flash"></div>
-<div class="absolute inset-0 z-50 flex items-center justify-center pointer-events-none hidden" id="countdown-overlay">
-<span class="text-white text-9xl font-display-bold-sans drop-shadow-2xl" id="countdown-text">1</span>
-</div>
+    <div class="absolute inset-0 bg-white pointer-events-none z-[100] transition-opacity opacity-0" id="flash"></div>
+    <div class="absolute inset-0 z-50 flex items-center justify-center pointer-events-none hidden" id="countdown-overlay">
+        <span class="text-white text-9xl font-display-bold-sans drop-shadow-2xl" id="countdown-text">1</span>
+    </div>
 </div>
 
 <!-- Action Controls -->
@@ -456,396 +465,4 @@
 <button class="w-full bg-secondary-fixed text-on-secondary-fixed py-3 px-6 flex items-center justify-center gap-3 transition-colors hover:bg-secondary text-xs font-technical-mono uppercase" id="download-btn"><span class="material-symbols-outlined">download</span>Unduh</button>
 </div>
 </div>
-<div class="bg-surface p-4 border border-outline-variant italic text-[11px] opacity-60 leading-relaxed">This archive project explores the intersection of memory and digital permanence. All captures are rendered locally and remain within your ephemeral session. ReveBooth © 2026.</div>
-</div>
-</div>
-</main>
-
-<canvas class="hidden" id="canvas" width="736" height="1104"></canvas>
-
-<!-- Mobile Navigation -->
-<footer class="fixed bottom-0 left-0 w-full flex justify-around items-center py-3 px-4 md:hidden bg-surface-container border-t border-outline-variant z-50">
-<div class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-full px-6 py-1"><span class="material-symbols-outlined">photo_camera</span><span class="font-technical-mono text-[10px]">Studio</span></div>
-<div class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-1"><span class="material-symbols-outlined">auto_awesome_motion</span><span class="font-technical-mono text-[10px]">Gallery</span></div>
-<div class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-1"><span class="material-symbols-outlined">settings</span><span class="font-technical-mono text-[10px]">Settings</span></div>
-</footer>
-
-<script>
-// ========== FUNGSI roundRect (FIX ERROR) ==========
-if (!CanvasRenderingContext2D.prototype.roundRect) {
-    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
-        if (w < 2 * r) r = w / 2;
-        if (h < 2 * r) r = h / 2;
-        this.moveTo(x + r, y);
-        this.lineTo(x + w - r, y);
-        this.quadraticCurveTo(x + w, y, x + w, y + r);
-        this.lineTo(x + w, y + h - r);
-        this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        this.lineTo(x + r, y + h);
-        this.quadraticCurveTo(x, y + h, x, y + h - r);
-        this.lineTo(x, y + r);
-        this.quadraticCurveTo(x, y, x + r, y);
-        this.closePath();
-        return this;
-    };
-}
-
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const captureBtn = document.getElementById('capture-btn');
-const resetBtn = document.getElementById('reset-btn');
-const downloadBtn = document.getElementById('download-btn');
-const flash = document.getElementById('flash');
-const postActions = document.getElementById('post-capture-actions');
-const stageContainer = document.getElementById('capture-area');
-const countdownOverlay = document.getElementById('countdown-overlay');
-const countdownText = document.getElementById('countdown-text');
-const captureStatus = document.getElementById('capture-status');
-const statusText = document.getElementById('status-text');
-
-const overlays = {
-    boarding: document.getElementById('overlay-boarding'),
-    kalibata: document.getElementById('overlay-kalibata'),
-    lany: document.getElementById('overlay-lany')
-};
-
-const buttons = {
-    boarding: document.getElementById('btn-boarding'),
-    kalibata: document.getElementById('btn-kalibata'),
-    lany: document.getElementById('btn-lany')
-};
-
-let currentTheme = 'boarding';
-let stream = null;
-let capturedShots = [];
-
-async function initCamera() {
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: { ideal: 1280 }, height: { ideal: 720 }, aspectRatio: 1 }, 
-            audio: false 
-        });
-        video.srcObject = stream;
-    } catch (err) {
-        console.error("Error accessing webcam:", err);
-        alert("Please grant camera access to use ReveBooth.");
-    }
-}
-
-function setDate() {
-    const now = new Date();
-    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-    const dateStr = `${months[now.getMonth()]} ${now.getDate().toString().padStart(2, '0')} ${now.getFullYear()}`;
-    const stubDate = document.getElementById('date-stub');
-    if(stubDate) stubDate.textContent = dateStr;
-}
-
-function setTheme(theme) {
-    currentTheme = theme;
-    Object.keys(overlays).forEach(k => {
-        overlays[k].classList.toggle('hidden', k !== theme);
-    });
-    
-    stageContainer.classList.remove('kalibata-active', 'boarding-active');
-    video.classList.remove('opacity-40', 'hidden');
-
-    if (theme === 'kalibata') {
-        stageContainer.classList.add('kalibata-active');
-        video.classList.add('opacity-40');
-    } else if (theme === 'boarding') {
-        stageContainer.classList.add('boarding-active');
-        video.classList.add('opacity-40');
-    }
-
-    Object.keys(buttons).forEach(k => {
-        if(k === theme) {
-            buttons[k].classList.add('ring-2', 'ring-primary', 'scale-[1.02]');
-        } else {
-            buttons[k].classList.remove('ring-2', 'ring-primary', 'scale-[1.02]');
-        }
-    });
-    
-    capturedShots = [];
-    resetUI();
-}
-
-function resetUI() {
-    video.play();
-    video.classList.remove('hidden');
-    captureBtn.classList.remove('hidden');
-    postActions.classList.add('hidden');
-    captureStatus.classList.add('hidden');
-    
-    if (currentTheme === 'kalibata') {
-        for(let i=0; i<3; i++) {
-            const img = document.querySelector(`#slot-${i} img`);
-            if(img) { img.classList.add('hidden'); img.src = ''; }
-        }
-    } else if (currentTheme === 'boarding') {
-        for(let i=0; i<4; i++) {
-            const img = document.querySelector(`#board-slot-${i} img`);
-            if(img) { img.classList.add('hidden'); img.src = ''; }
-        }
-    }
-}
-
-async function triggerFlash() {
-    flash.classList.remove('opacity-0');
-    flash.classList.add('opacity-100');
-    await new Promise(r => setTimeout(r, 100));
-    flash.classList.remove('opacity-100');
-    flash.classList.add('opacity-0');
-}
-
-async function startCountdown(seconds) {
-    countdownOverlay.classList.remove('hidden');
-    for (let i = seconds; i > 0; i--) {
-        countdownText.textContent = i;
-        await new Promise(r => setTimeout(r, 800));
-    }
-    countdownOverlay.classList.add('hidden');
-}
-
-async function captureFrame() {
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = 600;
-    tempCanvas.height = 600;
-    const ctx = tempCanvas.getContext('2d');
-    
-    ctx.save();
-    ctx.filter = 'none';
-    ctx.translate(tempCanvas.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-    ctx.restore();
-    
-    applyGrain(ctx, tempCanvas.width, tempCanvas.height);
-    return tempCanvas.toDataURL('image/jpeg', 0.8);
-}
-
-captureBtn.addEventListener('click', async () => {
-    captureBtn.classList.add('hidden');
-    capturedShots = [];
-    
-    const count = currentTheme === 'kalibata' ? 3 : (currentTheme === 'boarding' ? 4 : 1);
-    
-    if (count > 1) {
-        captureStatus.classList.remove('hidden');
-        for (let i = 0; i < count; i++) {
-            statusText.textContent = `Get Ready for Shot ${i+1}/${count}...`;
-            await startCountdown(3);
-            statusText.textContent = `Capturing Shot ${i+1}/${count}...`;
-            await triggerFlash();
-            const shotData = await captureFrame();
-            capturedShots.push(shotData);
-            
-            const selector = currentTheme === 'kalibata' ? `#slot-${i}` : `#board-slot-${i}`;
-            const slotImg = document.querySelector(`${selector} img`);
-            if(slotImg) {
-                slotImg.src = shotData;
-                slotImg.classList.remove('hidden');
-            }
-        }
-        video.classList.add('hidden');
-        captureStatus.classList.add('hidden');
-    } else {
-        await startCountdown(3);
-        await triggerFlash();
-        const shotData = await captureFrame();
-        capturedShots.push(shotData);
-        video.pause();
-    }
-    
-    postActions.classList.remove('hidden');
-    renderToFinalCanvas();
-});
-
-resetBtn.addEventListener('click', () => {
-    resetUI();
-});
-
-function applyGrain(ctx, width, height) {
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
-    const amount = 15;
-    for (let i = 0; i < data.length; i += 4) {
-        const noise = (Math.random() - 0.5) * amount;
-        data[i] = Math.min(255, Math.max(0, data[i] + noise));
-        data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise));
-        data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise));
-    }
-    ctx.putImageData(imageData, 0, 0);
-}
-
-function renderToFinalCanvas() {
-    const ctx = canvas.getContext('2d');
-    const navy = '#1a237e';
-
-    if (currentTheme === 'boarding') {
-        canvas.width = 736;
-        canvas.height = 1104;
-        const w = canvas.width;
-        const h = canvas.height;
-
-        ctx.fillStyle = '#fcf9f8';
-        ctx.fillRect(0, 0, w, h);
-
-        ctx.fillStyle = navy;
-        ctx.fillRect(0, 0, w, 50);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '700 14px "Space Mono"';
-        ctx.textAlign = 'left';
-        ctx.fillText('PHOTO AIR ✈', 160, 32);
-        ctx.textAlign = 'right';
-        ctx.fillText('IDN - USA', w - 160, 32);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(30, 70, w - 60, 180);
-        ctx.strokeStyle = navy;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(30, 70, w - 60, 180);
-
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.moveTo(w - 230, 70);
-        ctx.lineTo(w - 230, 250);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.fillStyle = navy;
-        ctx.textAlign = 'left';
-        ctx.font = '800 52px "Montserrat"';
-        ctx.fillText('IDN✈USA', 60, 150);
-
-        ctx.fillStyle = navy;
-        for(let i=0; i<30; i++) {
-            const bw = Math.random() * 4 + 1;
-            ctx.fillRect(60 + (i*4.5), 180, bw, 40);
-        }
-
-        ctx.font = '700 12px "Space Mono"';
-        ctx.fillText('FLIGHT', 200, 195);
-        ctx.fillText('GATE', 280, 195);
-        ctx.fillText('SEAT', 320, 195);
-        ctx.fillText('DEPARTUR', 360, 195);
-        ctx.font = '400 12px "Space Mono"';
-        ctx.fillText('JG 5879092', 200, 215);
-        ctx.fillText('7', 280, 215);
-        ctx.fillText('26C', 320, 215);
-        
-        const dateStub = document.getElementById('date-stub');
-        if(dateStub) ctx.fillText(dateStub.textContent, 360, 215);
-
-        ctx.font = '700 12px "Space Mono"';
-        ctx.fillText('FLIGHT', w - 200, 105);
-        ctx.fillText('DEPARTUR', w - 200, 145);
-        ctx.font = '400 12px "Space Mono"';
-        ctx.fillText('JG 5879092', w - 200, 120);
-        if(dateStub) ctx.fillText(dateStub.textContent, w - 200, 160);
-        ctx.font = '700 10px "Space Mono"';
-        ctx.fillText('REVEBOOTH', w - 200, 210);
-        ctx.fillText('PHOTOBOOTH', w - 200, 222);
-
-        const gridY = 270;
-        const gridPadding = 20;
-        const slotW = (w - (gridPadding * 3)) / 2;
-        const slotH = slotW;
-
-        capturedShots.forEach((data, i) => {
-            const img = new Image();
-            img.onload = () => {
-                const col = i % 2;
-                const row = Math.floor(i / 2);
-                const x = gridPadding + (col * (slotW + gridPadding));
-                const y = gridY + (row * (slotH + gridPadding));
-                ctx.drawImage(img, x, y, slotW, slotH);
-            };
-            img.src = data;
-        });
-
-        ctx.fillStyle = navy;
-        ctx.fillRect(0, h - 50, w, 50);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '700 14px "Space Mono"';
-        ctx.textAlign = 'center';
-        ctx.fillText('REVEBOOTH PHOTOBOOTH', w/2, h - 18);
-
-    } else if (currentTheme === 'kalibata') {
-        canvas.width = 400;
-        canvas.height = 900;
-        const w = canvas.width;
-        const h = canvas.height;
-        ctx.fillStyle = '#e9e7d9';
-        ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = 'rgba(0,0,0,0.8)';
-        ctx.textAlign = 'center';
-        ctx.font = '700 24px "Dancing Script"';
-        ctx.fillText('Photomatic', w/2, 60);
-        ctx.font = '400 12px "Space Mono"';
-        ctx.fillText('- Kalibata, 2012 -', w/2, 85);
-        
-        const imgWidth = 320;
-        const imgHeight = 200;
-        const startY = 120;
-        const spacing = 220;
-        const radius = 30;
-
-        capturedShots.forEach((data, index) => {
-            const img = new Image();
-            img.onload = () => {
-                const x = (w - imgWidth) / 2;
-                const y = startY + (index * spacing);
-                ctx.save();
-                ctx.beginPath();
-                ctx.roundRect(x, y, imgWidth, imgHeight, radius);
-                ctx.clip();
-                ctx.drawImage(img, x, y, imgWidth, imgHeight);
-                ctx.restore();
-            };
-            img.src = data;
-        });
-        
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.font = 'italic 14px "Noto Serif"';
-        ctx.fillText('"Bolehkah kugunakan nama depanmu kelak?"', w/2, h - 70);
-        ctx.fillText('"Pasti kan kusematkan hingga menular."', w/2, h - 45);
-
-    } else {
-        canvas.width = 600;
-        canvas.height = 800;
-        const w = canvas.width;
-        const h = canvas.height;
-        const img = new Image();
-        img.onload = () => {
-            ctx.drawImage(img, 0, 0, w, h);
-            if (currentTheme === 'lany') {
-                const lanyBlue = '#3d4a8e';
-                ctx.strokeStyle = lanyBlue;
-                ctx.lineWidth = 20;
-                ctx.strokeRect(0, 0, w, h);
-                ctx.fillStyle = lanyBlue;
-                ctx.textAlign = 'center';
-                ctx.font = '800 16px "Montserrat"';
-                ctx.fillText('REVEBOOTH', w/2, h-35);
-            }
-        };
-        if(capturedShots[0]) img.src = capturedShots[0];
-    }
-}
-
-downloadBtn.addEventListener('click', () => {
-    const dataURL = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = `revebooth-${currentTheme}-${Date.now()}.png`;
-    link.href = dataURL;
-    link.click();
-});
-
-window.addEventListener('load', () => {
-    initCamera();
-    setDate();
-    setTheme('boarding');
-});
-</script>
-</body>
-</html>
+<div class="bg-surface p-4 border border-outline-variant italic text-[11px] opacity-60 leading-relaxed">This archive project explores
