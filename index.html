@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>ReveBooth - Digital Archive Photobooth</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Noto+Serif:ital,wght@0,400;0,700;1,600&amp;family=Space+Mono:wght@400;700&amp;family=Montserrat:wght@800&amp;family=Dancing+Script:wght@700&amp;display=swap" rel="stylesheet">
+<style>
+        /* Tailwind Config */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        .stage-container {
+            aspect-ratio: 3 / 4;
+            max-width: 450px;
+            width: 100%;
+        }
+
+        .stage-container.kalibata-active {
+            aspect-ratio: 1 / 2.2;
+            max-width: 360px;
+        }
+
+        .stage-container.boarding-active {
+            aspect-ratio: 1 / 1.4;
+            max-width: 500px;
+        }
+
+        .vintage-filter {
+            filter: sepia(0.35) contrast(1.1) brightness(1.05) saturate(0.9);
+        }
+
+        .film-grain {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 40;
+            opacity: 0.15;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            animation: grain 1s steps(10) infinite;
+        }
+
+        @keyframes grain {
+            0%, 100% { transform:translate(0, 0) }
+            10% { transform:translate(-5%, -10%) }
+            20% { transform:translate(-15%, 5%) }
+            30% { transform:translate(7%, -25%) }
+            40% { transform:translate(-5%, 25%) }
+            50% { transform:translate(-15%, 10%) }
+            60% { transform:translate(15%, 0%) }
+            70% { transform:translate(0%, 15%) }
+            80% { transform:translate(3%, 35%) }
+            90% { transform:translate(-10%, 10%) }
+        }
+
+        .kalibata-frame-edge {
+            mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='rough'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='5' /%3E%3CfeDisplacementMap in='SourceGraphic' scale='5' /%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23rough)' /%3E%3C/svg%3E");
+            -webkit-mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' preserveAspectRatio='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='rough'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='5' /%3E%3CfeDisplacementMap in='SourceGraphic' scale='5' /%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23rough)' /%3E%3C/svg%3E");
+        }
+
+        .photo-slot {
+            width: 100%;
+            height: calc((100% - 200px) / 3);
+            background: #eee;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .boarding-photo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 12px;
+            padding: 12px;
+            background: #fff;
+        }
+
+        .boarding-photo-slot {
+            aspect-ratio: 1;
+            background: #eee;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .barcode-strip {
+            background: repeating-linear-gradient(
+                90deg,
+                #1a237e,
+                #1a237e 2px,
+                transparent 2px,
+                transparent 4px
+            );
+        }
+
+        /* Tailwind Utilities */
+        *, ::before, ::after {
+            --tw-border-spacing-x: 0;
+            --tw-border-spacing-y: 0;
+            --tw-translate-x: 0;
+            --tw-translate-y: 0;
+            --tw-rotate: 0;
+            --tw-skew-x: 0;
+            --tw-skew-y: 0;
+            --tw-scale-x: 1;
+            --tw-scale-y: 1;
+        }
+        
+        .absolute { position: absolute; }
+        .relative { position: relative; }
+        .sticky { position: sticky; }
+        .fixed { position: fixed; }
+        .inset-0 { inset: 0px; }
+        .top-0 { top: 0px; }
+        .bottom-0 { bottom: 0px; }
+        .left-0 { left: 0px; }
+        .right-4 { right: 1rem; }
+        .bottom-4 { bottom: 1rem; }
+        .top-4 { top: 1rem; }
+        .z-0 { z-index: 0; }
+        .z-10 { z-index: 10; }
+        .z-20 { z-index: 20; }
+        .z-50 { z-index: 50; }
+        .z-\[100\] { z-index: 100; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .mx-1 { margin-left: 0.25rem; margin-right: 0.25rem; }
+        .-mb-4 { margin-bottom: -1rem; }
+        .-mr-2 { margin-right: -0.5rem; }
+        .-mt-1 { margin-top: -0.25rem; }
+        .mb-1 { margin-bottom: 0.25rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-12 { margin-bottom: 3rem; }
+        .ml-12 { margin-left: 3rem; }
+        .mt-1 { margin-top: 0.25rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-4 { margin-top: 1rem; }
+        .mt-8 { margin-top: 2rem; }
+        .block { display: block; }
+        .flex { display: flex; }
+        .grid { display: grid; }
+        .hidden { display: none; }
+        .h-8 { height: 2rem; }
+        .h-full { height: 100%; }
+        .w-full { width: 100%; }
+        .w-1\/2 { width: 50%; }
+        .w-16 { width: 4rem; }
+        .w-32 { width: 8rem; }
+        .w-6 { width: 1.5rem; }
+        .w-64 { width: 16rem; }
+        .max-w-container-max { max-width: 1200px; }
+        .flex-grow { flex-grow: 1; }
+        .-scale-x-100 { transform: scaleX(-1); }
+        .transform { transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y)); }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .cursor-pointer { cursor: pointer; }
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .items-start { align-items: flex-start; }
+        .items-end { align-items: flex-end; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-around { justify-content: space-around; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        .gap-8 { gap: 2rem; }
+        .gap-12 { gap: 3rem; }
+        .gap-gutter { gap: 24px; }
+        .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.25rem; }
+        .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.75rem; }
+        .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem; }
+        .overflow-hidden { overflow: hidden; }
+        .overflow-x-hidden { overflow-x: hidden; }
+        .rounded-full { border-radius: 0.75rem; }
+        .border { border-width: 1px; }
+        .border-2 { border-width: 2px; }
+        .border-b { border-bottom-width: 1px; }
+        .border-b-2 { border-bottom-width: 2px; }
+        .border-r { border-right-width: 1px; }
+        .border-t { border-top-width: 1px; }
+        .border-dashed { border-style: dashed; }
+        .bg-background { background-color: #fcf9f8; }
+        .bg-white { background-color: #ffffff; }
+        .bg-primary { background-color: #191919; }
+        .bg-reve-navy { background-color: #1a237e; }
+        .bg-surface { background-color: #fcf9f8; }
+        .bg-surface-container { background-color: #f0eded; }
+        .bg-surface-container-low { background-color: #f6f3f2; }
+        .bg-surface-dim { background-color: #dcd9d9; }
+        .bg-secondary-fixed { background-color: #e7e2d4; }
+        .bg-kalibata-cream { background-color: #e9e7d9; }
+        .bg-\[\#e5e5e5\] { background-color: #e5e5e5; }
+        .bg-\[\#e8e6e3\] { background-color: #e8e6e3; }
+        .object-cover { object-fit: cover; }
+        .p-4 { padding: 1rem; }
+        .p-6 { padding: 1.5rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .px-margin-mobile { padding-left: 16px; padding-right: 16px; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+        .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+        .pb-2 { padding-bottom: 0.5rem; }
+        .pb-6 { padding-bottom: 1.5rem; }
+        .pt-2 { padding-top: 0.5rem; }
+        .pt-4 { padding-top: 1rem; }
+        .text-left { text-align: left; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-primary { color: #191919; }
+        .text-white { color: #ffffff; }
+        .text-on-primary { color: #ffffff; }
+        .text-on-surface { color: #1c1b1b; }
+        .text-on-surface-variant { color: #444748; }
+        .text-reve-navy { color: #1a237e; }
+        .text-reve-navy\/60 { color: rgba(26, 35, 126, 0.6); }
+        .text-reve-navy\/70 { color: rgba(26, 35, 126, 0.7); }
+        .text-lany-blue { color: #3d4a8e; }
+        .text-lany-blue\/60 { color: rgba(61, 74, 142, 0.6); }
+        .text-lany-blue\/70 { color: rgba(61, 74, 142, 0.7); }
+        .text-black\/80 { color: rgba(0, 0, 0, 0.8); }
+        .text-on-secondary-fixed { color: #1d1c13; }
+        .opacity-0 { opacity: 0; }
+        .opacity-10 { opacity: 0.1; }
+        .opacity-20 { opacity: 0.2; }
+        .opacity-40 { opacity: 0.4; }
+        .opacity-60 { opacity: 0.6; }
+        .opacity-70 { opacity: 0.7; }
+        .opacity-80 { opacity: 0.8; }
+        .opacity-90 { opacity: 0.9; }
+        .opacity-100 { opacity: 1; }
+        .shadow-xl { box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
+        .shadow-inner { box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05); }
+        .shadow-\[4px_4px_0px_\#191919\] { box-shadow: 4px 4px 0px #191919; }
+        .ring-2 { --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color); --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color); box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); }
+        .ring-primary { --tw-ring-color: #191919; }
+        .drop-shadow-2xl { filter: drop-shadow(0 25px 25px rgb(0 0 0 / 0.15)); }
+        .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+        .transition-colors { transition-property: color, background-color, border-color, fill, stroke; transition-duration: 150ms; }
+        .transition-opacity { transition-property: opacity; transition-duration: 150ms; }
+        .duration-200 { transition-duration: 200ms; }
+        .duration-500 { transition-duration: 500ms; }
+        .hover\:scale-\[1\.02\]:hover { transform: scale(1.02); }
+        .hover\:bg-primary:hover { background-color: #191919; }
+        .hover\:bg-secondary:hover { background-color: #615e53; }
+        .hover\:text-on-primary:hover { color: #ffffff; }
+        .hover\:text-primary:hover { color: #191919; }
+        .active\:scale-95:active { transform: scale(0.95); }
+        
+        @keyframes pulse {
+            50% { opacity: .5; }
+        }
+        
+        @media (min-width: 768px) {
+            .md\:flex { display: flex; }
+            .md\:hidden { display: none; }
+            .md\:w-64 { width: 16rem; }
+            .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .md\:flex-row { flex-direction: row; }
+            .md\:px-margin-desktop { padding-left: 40px; padding-right: 40px; }
+            .md\:text-display-lg { font-size: 48px; line-height: 56px; letter-spacing: -0.02em; font-weight: 700; }
+        }
+
+        .font-body-md { font-family: Inter; }
+        .font-display-bold-sans { font-family: Montserrat; }
+        .font-display-lg { font-family: 'Noto Serif'; }
+        .font-headline-md { font-family: 'Noto Serif'; }
+        .font-headline-sm { font-family: 'Noto Serif'; }
+        .font-script { font-family: 'Dancing Script', cursive; }
+        .font-technical-mono { font-family: 'Space Mono'; }
+        
+        .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+        .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+        .text-8xl { font-size: 6rem; line-height: 1; }
+        .text-9xl { font-size: 8rem; line-height: 1; }
+        .text-\[100px\] { font-size: 100px; }
+        .text-\[10px\] { font-size: 10px; }
+        .text-\[11px\] { font-size: 11px; }
+        .text-\[12px\] { font-size: 12px; }
+        .text-\[7px\] { font-size: 7px; }
+        .text-\[8px\] { font-size: 8px; }
+        .text-\[9px\] { font-size: 9px; }
+        .text-headline-lg-mobile { font-size: 32px; line-height: 40px; font-weight: 700; }
+        .text-headline-sm { font-size: 24px; line-height: 32px; font-weight: 600; }
+        .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+        .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+        .text-technical-mono { font-size: 14px; line-height: 20px; letter-spacing: 0.05em; font-weight: 400; }
+        .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+        .text-xs { font-size: 0.75rem; line-height: 1rem; }
+        
+        .font-bold { font-weight: 700; }
+        .uppercase { text-transform: uppercase; }
+        .italic { font-style: italic; }
+        .leading-none { line-height: 1; }
+        .leading-relaxed { line-height: 1.625; }
+        .leading-tight { line-height: 1.25; }
+        .tracking-tight { letter-spacing: -0.025em; }
+        .tracking-tighter { letter-spacing: -0.05em; }
+        .tracking-widest { letter-spacing: 0.1em; }
+        
+        .min-h-\[1024px\] { min-height: 1024px; }
+        .pointer-events-none { pointer-events: none; }
+        .bottom-\[-10px\] { bottom: -10px; }
+        .right-\[-10px\] { right: -10px; }
+        .scale-\[1\.02\] { transform: scale(1.02); }
+        .rotate-180 { transform: rotate(180deg); }
+        
+        .border-outline-variant { border-color: #c4c7c7; }
+        .border-outline { border-color: #747878; }
+        .border-primary { border-color: #191919; }
+        .border-reve-navy { border-color: #1a237e; }
+        .border-reve-navy\/40 { border-color: rgba(26, 35, 126, 0.4); }
+        .border-lany-blue\/30 { border-color: rgba(61, 74, 142, 0.3); }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-[1024px] flex flex-col font-body-md overflow-x-hidden">
+<!-- Header -->
+<nav class="bg-background border-b border-outline-variant flex justify-between items-center px-margin-mobile md:px-margin-desktop py-4 w-full max-w-container-max mx-auto z-50 sticky top-0">
+<h1 class="font-display-lg text-headline-lg-mobile md:text-display-lg text-primary tracking-tight">ReveBooth</h1>
+<div class="hidden md:flex gap-8 items-center">
+<a class="font-technical-mono text-technical-mono text-primary font-bold border-b-2 border-primary" href="#">Studio</a>
+<a class="font-technical-mono text-technical-mono text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Gallery</a>
+<a class="font-technical-mono text-technical-mono text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">Archive</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary cursor-pointer">account_circle</span>
+</div>
+</nav>
+
+<main class="flex-grow flex flex-col items-center py-8 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto w-full">
+<!-- Theme Selection -->
+<div class="w-full mb-12">
+<p class="font-technical-mono text-technical-mono uppercase mb-4 opacity-60">Select Your Visual Narrative</p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<button class="group relative bg-white border-2 border-reve-navy p-6 text-left transition-all hover:scale-[1.02] active:scale-95 overflow-hidden" id="btn-boarding" onclick="setTheme('boarding')">
+<span class="font-technical-mono text-reve-navy/60 block mb-2">01</span>
+<h3 class="font-headline-sm text-reve-navy mb-1 uppercase tracking-widest">Boarding Pass</h3>
+<p class="text-xs text-reve-navy/70 italic">IDN - USA FLIGHT</p>
+<div class="absolute bottom-[-10px] right-[-10px] opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-reve-navy text-[100px]">flight_takeoff</span>
+</div>
+</button>
+<button class="group relative bg-kalibata-cream border border-outline-variant p-6 text-left transition-all hover:scale-[1.02] active:scale-95" id="btn-kalibata" onclick="setTheme('kalibata')">
+<span class="font-technical-mono text-technical-mono opacity-60 block mb-2">02</span>
+<h3 class="font-headline-sm text-headline-sm mb-1 italic">Kalibata 2012</h3>
+<p class="text-xs opacity-70 uppercase tracking-tighter">perunggu</p>
+</button>
+<button class="group relative bg-[#e5e5e5] border border-lany-blue/30 p-6 text-left transition-all hover:scale-[1.02] active:scale-95" id="btn-lany" onclick="setTheme('lany')">
+<span class="font-technical-mono text-lany-blue/60 block mb-2">03 XXL</span>
+<h3 class="font-display-bold-sans text-xl mb-1 italic tracking-tighter text-lany-blue">LANY</h3>
+<p class="text-[10px] text-lany-blue/70 font-technical-mono uppercase tracking-widest">a beautiful blur</p>
+</button>
+</div>
+</div>
+
+<!-- The Stage -->
+<div class="relative w-full flex flex-col md:flex-row gap-12 items-center justify-center">
+<!-- Live Viewport Container -->
+<div class="stage-container relative bg-surface-dim overflow-hidden border border-outline-variant shadow-xl transition-all duration-500" id="capture-area">
+<video autoplay class="absolute inset-0 w-full h-full object-cover transform -scale-x-100 vintage-filter opacity-40" id="video" playsinline></video>
+<div class="film-grain"></div>
+
+<!-- Boarding Pass Overlay -->
+<div class="absolute inset-0 pointer-events-none flex flex-col z-10 bg-white hidden" id="overlay-boarding">
+<div class="bg-reve-navy text-white px-6 py-2 flex justify-between items-center font-technical-mono text-[10px] uppercase tracking-widest">
+<div class="flex items-center gap-2"><span>PHOTO AIR</span><span class="material-symbols-outlined text-[12px]">flight</span></div>
+<div>IDN - USA</div>
+</div>
+<div class="border-b-2 border-reve-navy flex">
+<div class="flex-grow p-4 border-r border-dashed border-reve-navy/40">
+<h2 class="text-reve-navy text-4xl font-display-bold-sans tracking-tighter flex items-center">IDN <span class="material-symbols-outlined mx-1 text-2xl">flight</span> USA</h2>
+<div class="mt-4 grid grid-cols-4 gap-2 text-reve-navy">
+<div class="barcode-strip h-8 w-16 mb-1"></div>
+<div><p class="text-[7px] font-bold uppercase opacity-60">Flight</p><p class="text-[9px] font-bold">JG 5879092</p></div>
+<div><p class="text-[7px] font-bold uppercase opacity-60">Gate</p><p class="text-[9px] font-bold">7</p></div>
+<div><p class="text-[7px] font-bold uppercase opacity-60">Seat</p><p class="text-[9px] font-bold">26C</p></div>
+</div>
+</div>
+<div class="w-32 p-4 text-reve-navy font-technical-mono relative">
+<div class="space-y-3">
+<div><p class="text-[7px] font-bold opacity-60">FLIGHT</p><p class="text-[9px]">JG 5879092</p></div>
+<div><p class="text-[7px] font-bold opacity-60">DEPARTUR</p><p class="text-[9px]" id="date-stub">MAY 23 2026</p></div>
+<div class="pt-2"><p class="text-[7px] font-bold leading-tight">REVEBOOTH<br>PHOTOBOOTH</p></div>
+</div>
+<div class="absolute right-4 top-4 bottom-4 w-6 barcode-strip rotate-180 opacity-60"></div>
+</div>
+</div>
+<div class="boarding-photo-grid flex-grow">
+<div class="boarding-photo-slot" id="board-slot-0"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+<div class="boarding-photo-slot" id="board-slot-1"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+<div class="boarding-photo-slot" id="board-slot-2"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+<div class="boarding-photo-slot" id="board-slot-3"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-10"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+</div>
+<div class="bg-reve-navy text-white text-center py-2 font-technical-mono text-[10px] tracking-widest uppercase">ReveBooth Photobooth</div>
+</div>
+
+<!-- Kalibata Overlay -->
+<div class="absolute inset-0 pointer-events-none flex flex-col p-6 z-10 bg-kalibata-cream kalibata-frame-edge shadow-inner hidden" id="overlay-kalibata">
+<div class="w-full flex flex-col items-center pt-4 pb-2"><span class="font-script text-lg text-black/80">Photomatic</span><span class="font-technical-mono text-[10px] tracking-widest mt-1">- Kalibata, 2012 -</span></div>
+<div class="flex-grow flex flex-col justify-around py-4">
+<div class="photo-slot" id="slot-0"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-20"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+<div class="photo-slot" id="slot-1"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-20"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+<div class="photo-slot" id="slot-2"><img class="w-full h-full object-cover hidden" src=""><div class="absolute inset-0 flex items-center justify-center opacity-20"><span class="material-symbols-outlined text-4xl">photo</span></div></div>
+</div>
+<div class="w-full text-center pb-6 px-4 space-y-1">
+<p class="font-headline-sm italic text-[11px] leading-tight text-black/80">"Bolehkah kugunakan nama depanmu kelak?"</p>
+<p class="font-headline-sm italic text-[11px] leading-tight text-black/80">"Pasti kan kusematkan hingga menular."</p>
+</div>
+</div>
+
+<!-- LANY Overlay -->
+<div class="absolute inset-0 pointer-events-none flex flex-col p-6 z-10 hidden" id="overlay-lany">
+<div class="absolute inset-0 bg-[#e8e6e3] opacity-20 z-0"></div>
+<div class="relative z-20 flex justify-between items-start text-lany-blue">
+<div class="font-technical-mono text-[8px] leading-tight opacity-80">i still remember...<br>i will forever...</div>
+<div class="font-headline-sm text-sm italic tracking-tight text-right w-1/2">secrets we will tell</div>
+</div>
+<div class="relative z-20 mt-2">
+<h2 class="font-headline-md italic text-4xl text-lany-blue leading-none">Backseat</h2>
+<p class="font-technical-mono text-[10px] text-lany-blue ml-12 -mt-1">never</p>
+</div>
+<div class="flex-grow"></div>
+<div class="relative z-20">
+<div class="flex items-end justify-between">
+<div class="text-lany-blue">
+<p class="font-headline-sm italic text-xl mb-1">i miss you</p>
+<p class="font-technical-mono text-[7px] leading-tight opacity-70">miss americana<br>and all my friends love ya</p>
+</div>
+<div class="font-script text-8xl text-lany-blue opacity-90 leading-none -mb-4 -mr-2">XXL</div>
+</div>
+<div class="mt-8 text-center"><span class="font-display-bold-sans text-xs tracking-widest text-lany-blue">LANY</span></div>
+</div>
+</div>
+
+<div class="absolute inset-0 bg-white pointer-events-none z-[100] transition-opacity opacity-0" id="flash"></div>
+<div class="absolute inset-0 z-50 flex items-center justify-center pointer-events-none hidden" id="countdown-overlay">
+<span class="text-white text-9xl font-display-bold-sans drop-shadow-2xl" id="countdown-text">1</span>
+</div>
+</div>
+
+<!-- Action Controls -->
+<div class="flex flex-col gap-6 w-full md:w-64">
+<div class="bg-surface-container-low p-6 border border-outline-variant">
+<h4 class="font-technical-mono text-xs font-bold mb-4 border-b border-outline pb-2 uppercase">Process</h4>
+<div class="mb-4 text-center hidden" id="capture-status"><p class="text-[10px] font-technical-mono uppercase tracking-widest text-primary animate-pulse" id="status-text">Capturing Shot 4/4...</p></div>
+<button class="w-full bg-primary text-on-primary py-4 px-6 flex items-center justify-center gap-3 transition-transform hover:scale-[1.02] active:scale-95 mb-4" id="capture-btn">
+<span class="material-symbols-outlined">photo_camera</span>
+<span class="font-technical-mono uppercase text-xs tracking-widest">Ambil Foto</span>
+</button>
+<div class="space-y-4 hidden" id="post-capture-actions">
+<button class="w-full border border-primary py-3 px-6 flex items-center justify-center gap-3 transition-colors hover:bg-primary hover:text-on-primary text-xs font-technical-mono uppercase" id="reset-btn"><span class="material-symbols-outlined">refresh</span>Ulangi</button>
+<button class="w-full bg-secondary-fixed text-on-secondary-fixed py-3 px-6 flex items-center justify-center gap-3 transition-colors hover:bg-secondary text-xs font-technical-mono uppercase" id="download-btn"><span class="material-symbols-outlined">download</span>Unduh</button>
+</div>
+</div>
+<div class="bg-surface p-4 border border-outline-variant italic text-[11px] opacity-60 leading-relaxed">This archive project explores the intersection of memory and digital permanence. All captures are rendered locally and remain within your ephemeral session. ReveBooth © 2026.</div>
+</div>
+</div>
+</main>
+
+<canvas class="hidden" id="canvas" width="736" height="1104"></canvas>
+
+<!-- Mobile Navigation -->
+<footer class="fixed bottom-0 left-0 w-full flex justify-around items-center py-3 px-4 md:hidden bg-surface-container border-t border-outline-variant z-50">
+<div class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-full px-6 py-1"><span class="material-symbols-outlined">photo_camera</span><span class="font-technical-mono text-[10px]">Studio</span></div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-1"><span class="material-symbols-outlined">auto_awesome_motion</span><span class="font-technical-mono text-[10px]">Gallery</span></div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-1"><span class="material-symbols-outlined">settings</span><span class="font-technical-mono text-[10px]">Settings</span></div>
+</footer>
+
+<script>
+// ========== FUNGSI roundRect (FIX ERROR) ==========
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        if (w < 2 * r) r = w / 2;
+        if (h < 2 * r) r = h / 2;
+        this.moveTo(x + r, y);
+        this.lineTo(x + w - r, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + r);
+        this.lineTo(x + w, y + h - r);
+        this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        this.lineTo(x + r, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - r);
+        this.lineTo(x, y + r);
+        this.quadraticCurveTo(x, y, x + r, y);
+        this.closePath();
+        return this;
+    };
+}
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const captureBtn = document.getElementById('capture-btn');
+const resetBtn = document.getElementById('reset-btn');
+const downloadBtn = document.getElementById('download-btn');
+const flash = document.getElementById('flash');
+const postActions = document.getElementById('post-capture-actions');
+const stageContainer = document.getElementById('capture-area');
+const countdownOverlay = document.getElementById('countdown-overlay');
+const countdownText = document.getElementById('countdown-text');
+const captureStatus = document.getElementById('capture-status');
+const statusText = document.getElementById('status-text');
+
+const overlays = {
+    boarding: document.getElementById('overlay-boarding'),
+    kalibata: document.getElementById('overlay-kalibata'),
+    lany: document.getElementById('overlay-lany')
+};
+
+const buttons = {
+    boarding: document.getElementById('btn-boarding'),
+    kalibata: document.getElementById('btn-kalibata'),
+    lany: document.getElementById('btn-lany')
+};
+
+let currentTheme = 'boarding';
+let stream = null;
+let capturedShots = [];
+
+async function initCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, aspectRatio: 1 }, 
+            audio: false 
+        });
+        video.srcObject = stream;
+    } catch (err) {
+        console.error("Error accessing webcam:", err);
+        alert("Please grant camera access to use ReveBooth.");
+    }
+}
+
+function setDate() {
+    const now = new Date();
+    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    const dateStr = `${months[now.getMonth()]} ${now.getDate().toString().padStart(2, '0')} ${now.getFullYear()}`;
+    const stubDate = document.getElementById('date-stub');
+    if(stubDate) stubDate.textContent = dateStr;
+}
+
+function setTheme(theme) {
+    currentTheme = theme;
+    Object.keys(overlays).forEach(k => {
+        overlays[k].classList.toggle('hidden', k !== theme);
+    });
+    
+    stageContainer.classList.remove('kalibata-active', 'boarding-active');
+    video.classList.remove('opacity-40', 'hidden');
+
+    if (theme === 'kalibata') {
+        stageContainer.classList.add('kalibata-active');
+        video.classList.add('opacity-40');
+    } else if (theme === 'boarding') {
+        stageContainer.classList.add('boarding-active');
+        video.classList.add('opacity-40');
+    }
+
+    Object.keys(buttons).forEach(k => {
+        if(k === theme) {
+            buttons[k].classList.add('ring-2', 'ring-primary', 'scale-[1.02]');
+        } else {
+            buttons[k].classList.remove('ring-2', 'ring-primary', 'scale-[1.02]');
+        }
+    });
+    
+    capturedShots = [];
+    resetUI();
+}
+
+function resetUI() {
+    video.play();
+    video.classList.remove('hidden');
+    captureBtn.classList.remove('hidden');
+    postActions.classList.add('hidden');
+    captureStatus.classList.add('hidden');
+    
+    if (currentTheme === 'kalibata') {
+        for(let i=0; i<3; i++) {
+            const img = document.querySelector(`#slot-${i} img`);
+            if(img) { img.classList.add('hidden'); img.src = ''; }
+        }
+    } else if (currentTheme === 'boarding') {
+        for(let i=0; i<4; i++) {
+            const img = document.querySelector(`#board-slot-${i} img`);
+            if(img) { img.classList.add('hidden'); img.src = ''; }
+        }
+    }
+}
+
+async function triggerFlash() {
+    flash.classList.remove('opacity-0');
+    flash.classList.add('opacity-100');
+    await new Promise(r => setTimeout(r, 100));
+    flash.classList.remove('opacity-100');
+    flash.classList.add('opacity-0');
+}
+
+async function startCountdown(seconds) {
+    countdownOverlay.classList.remove('hidden');
+    for (let i = seconds; i > 0; i--) {
+        countdownText.textContent = i;
+        await new Promise(r => setTimeout(r, 800));
+    }
+    countdownOverlay.classList.add('hidden');
+}
+
+async function captureFrame() {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 600;
+    tempCanvas.height = 600;
+    const ctx = tempCanvas.getContext('2d');
+    
+    ctx.save();
+    ctx.filter = 'sepia(0.3) contrast(1.1) brightness(1.05) saturate(1)';
+    ctx.translate(tempCanvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+    ctx.restore();
+    
+    applyGrain(ctx, tempCanvas.width, tempCanvas.height);
+    return tempCanvas.toDataURL('image/jpeg', 0.8);
+}
+
+captureBtn.addEventListener('click', async () => {
+    captureBtn.classList.add('hidden');
+    capturedShots = [];
+    
+    const count = currentTheme === 'kalibata' ? 3 : (currentTheme === 'boarding' ? 4 : 1);
+    
+    if (count > 1) {
+        captureStatus.classList.remove('hidden');
+        for (let i = 0; i < count; i++) {
+            statusText.textContent = `Get Ready for Shot ${i+1}/${count}...`;
+            await startCountdown(3);
+            statusText.textContent = `Capturing Shot ${i+1}/${count}...`;
+            await triggerFlash();
+            const shotData = await captureFrame();
+            capturedShots.push(shotData);
+            
+            const selector = currentTheme === 'kalibata' ? `#slot-${i}` : `#board-slot-${i}`;
+            const slotImg = document.querySelector(`${selector} img`);
+            if(slotImg) {
+                slotImg.src = shotData;
+                slotImg.classList.remove('hidden');
+            }
+        }
+        video.classList.add('hidden');
+        captureStatus.classList.add('hidden');
+    } else {
+        await startCountdown(3);
+        await triggerFlash();
+        const shotData = await captureFrame();
+        capturedShots.push(shotData);
+        video.pause();
+    }
+    
+    postActions.classList.remove('hidden');
+    renderToFinalCanvas();
+});
+
+resetBtn.addEventListener('click', () => {
+    resetUI();
+});
+
+function applyGrain(ctx, width, height) {
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    const amount = 15;
+    for (let i = 0; i < data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * amount;
+        data[i] = Math.min(255, Math.max(0, data[i] + noise));
+        data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise));
+        data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise));
+    }
+    ctx.putImageData(imageData, 0, 0);
+}
+
+function renderToFinalCanvas() {
+    const ctx = canvas.getContext('2d');
+    const navy = '#1a237e';
+
+    if (currentTheme === 'boarding') {
+        canvas.width = 736;
+        canvas.height = 1104;
+        const w = canvas.width;
+        const h = canvas.height;
+
+        ctx.fillStyle = '#fcf9f8';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.fillStyle = navy;
+        ctx.fillRect(0, 0, w, 50);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 14px "Space Mono"';
+        ctx.textAlign = 'left';
+        ctx.fillText('PHOTO AIR ✈', 160, 32);
+        ctx.textAlign = 'right';
+        ctx.fillText('IDN - USA', w - 160, 32);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(30, 70, w - 60, 180);
+        ctx.strokeStyle = navy;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(30, 70, w - 60, 180);
+
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(w - 230, 70);
+        ctx.lineTo(w - 230, 250);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = navy;
+        ctx.textAlign = 'left';
+        ctx.font = '800 52px "Montserrat"';
+        ctx.fillText('IDN✈USA', 60, 150);
+
+        ctx.fillStyle = navy;
+        for(let i=0; i<30; i++) {
+            const bw = Math.random() * 4 + 1;
+            ctx.fillRect(60 + (i*4.5), 180, bw, 40);
+        }
+
+        ctx.font = '700 12px "Space Mono"';
+        ctx.fillText('FLIGHT', 200, 195);
+        ctx.fillText('GATE', 280, 195);
+        ctx.fillText('SEAT', 320, 195);
+        ctx.fillText('DEPARTUR', 360, 195);
+        ctx.font = '400 12px "Space Mono"';
+        ctx.fillText('JG 5879092', 200, 215);
+        ctx.fillText('7', 280, 215);
+        ctx.fillText('26C', 320, 215);
+        
+        const dateStub = document.getElementById('date-stub');
+        if(dateStub) ctx.fillText(dateStub.textContent, 360, 215);
+
+        ctx.font = '700 12px "Space Mono"';
+        ctx.fillText('FLIGHT', w - 200, 105);
+        ctx.fillText('DEPARTUR', w - 200, 145);
+        ctx.font = '400 12px "Space Mono"';
+        ctx.fillText('JG 5879092', w - 200, 120);
+        if(dateStub) ctx.fillText(dateStub.textContent, w - 200, 160);
+        ctx.font = '700 10px "Space Mono"';
+        ctx.fillText('REVEBOOTH', w - 200, 210);
+        ctx.fillText('PHOTOBOOTH', w - 200, 222);
+
+        const gridY = 270;
+        const gridPadding = 20;
+        const slotW = (w - (gridPadding * 3)) / 2;
+        const slotH = slotW;
+
+        capturedShots.forEach((data, i) => {
+            const img = new Image();
+            img.onload = () => {
+                const col = i % 2;
+                const row = Math.floor(i / 2);
+                const x = gridPadding + (col * (slotW + gridPadding));
+                const y = gridY + (row * (slotH + gridPadding));
+                ctx.drawImage(img, x, y, slotW, slotH);
+            };
+            img.src = data;
+        });
+
+        ctx.fillStyle = navy;
+        ctx.fillRect(0, h - 50, w, 50);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 14px "Space Mono"';
+        ctx.textAlign = 'center';
+        ctx.fillText('REVEBOOTH PHOTOBOOTH', w/2, h - 18);
+
+    } else if (currentTheme === 'kalibata') {
+        canvas.width = 400;
+        canvas.height = 900;
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.fillStyle = '#e9e7d9';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.textAlign = 'center';
+        ctx.font = '700 24px "Dancing Script"';
+        ctx.fillText('Photomatic', w/2, 60);
+        ctx.font = '400 12px "Space Mono"';
+        ctx.fillText('- Kalibata, 2012 -', w/2, 85);
+        
+        const imgWidth = 320;
+        const imgHeight = 200;
+        const startY = 120;
+        const spacing = 220;
+        const radius = 30;
+
+        capturedShots.forEach((data, index) => {
+            const img = new Image();
+            img.onload = () => {
+                const x = (w - imgWidth) / 2;
+                const y = startY + (index * spacing);
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(x, y, imgWidth, imgHeight, radius);
+                ctx.clip();
+                ctx.drawImage(img, x, y, imgWidth, imgHeight);
+                ctx.restore();
+            };
+            img.src = data;
+        });
+        
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.font = 'italic 14px "Noto Serif"';
+        ctx.fillText('"Bolehkah kugunakan nama depanmu kelak?"', w/2, h - 70);
+        ctx.fillText('"Pasti kan kusematkan hingga menular."', w/2, h - 45);
+
+    } else {
+        canvas.width = 600;
+        canvas.height = 800;
+        const w = canvas.width;
+        const h = canvas.height;
+        const img = new Image();
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, w, h);
+            if (currentTheme === 'lany') {
+                const lanyBlue = '#3d4a8e';
+                ctx.strokeStyle = lanyBlue;
+                ctx.lineWidth = 20;
+                ctx.strokeRect(0, 0, w, h);
+                ctx.fillStyle = lanyBlue;
+                ctx.textAlign = 'center';
+                ctx.font = '800 16px "Montserrat"';
+                ctx.fillText('REVEBOOTH', w/2, h-35);
+            }
+        };
+        if(capturedShots[0]) img.src = capturedShots[0];
+    }
+}
+
+downloadBtn.addEventListener('click', () => {
+    const dataURL = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `revebooth-${currentTheme}-${Date.now()}.png`;
+    link.href = dataURL;
+    link.click();
+});
+
+window.addEventListener('load', () => {
+    initCamera();
+    setDate();
+    setTheme('boarding');
+});
+</script>
+</body>
+</html>
