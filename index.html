@@ -30,7 +30,7 @@
         }
 
         .vintage-filter {
-            filter: sepia(0.35) contrast(1.1) brightness(1.05) saturate(0.9);
+            filter: sepia(0.08) contrast(1.02) brightness(1.1) saturate(1.5);
         }
 
         .film-grain {
@@ -38,7 +38,7 @@
             inset: 0;
             pointer-events: none;
             z-index: 40;
-            opacity: 0.15;
+            opacity: 0.08;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
             animation: grain 1s steps(10) infinite;
         }
@@ -366,7 +366,7 @@
 <div class="relative w-full flex flex-col md:flex-row gap-12 items-center justify-center">
 <!-- Live Viewport Container -->
 <div class="stage-container relative bg-surface-dim overflow-hidden border border-outline-variant shadow-xl transition-all duration-500" id="capture-area">
-<video autoplay class="absolute inset-0 w-full h-full object-cover transform -scale-x-100 vintage-filter opacity-40" id="video" playsinline></video>
+<video autoplay class="absolute inset-0 w-full h-full object-cover transform -scale-x-100 vintage-filter opacity-100" id="video" playsinline></video>
 <div class="film-grain"></div>
 
 <!-- Boarding Pass Overlay -->
